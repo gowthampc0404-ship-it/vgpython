@@ -843,7 +843,17 @@ export function OutputPanel({
                       Tracing execution flow...
                     </div>
                   )}
-                  {outputExplanation && (() => {
+                  {outputExplanation && outputExplanation.startsWith("Error:") && (
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-2">
+                      <p className="text-sm font-semibold text-destructive flex items-center gap-1.5">⚠️ AI service unavailable</p>
+                      <p className="text-xs text-muted-foreground">{outputExplanation.replace(/^Error:\s*/, "")}</p>
+                      <Button size="sm" variant="outline" onClick={() => onExplainOutput(output || liveOutput)} className="gap-1.5 mt-1">
+                        <GitBranch className="w-3.5 h-3.5" />
+                        Retry
+                      </Button>
+                    </div>
+                  )}
+                  {outputExplanation && !outputExplanation.startsWith("Error:") && (() => {
                     try {
                       let jsonStr = outputExplanation.trim();
                       const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -1011,7 +1021,14 @@ export function OutputPanel({
                     } catch {
                       return (
                         <div className="prose prose-invert prose-sm max-w-none">
-                          <ReactMarkdown>{outputExplanation}</ReactMarkdown>
+                          {isExplaining ? (
+                            <div className="flex items-center gap-2 text-muted-foreground text-sm not-prose">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Tracing execution flow…
+                            </div>
+                          ) : (
+                            <ReactMarkdown>{outputExplanation}</ReactMarkdown>
+                          )}
                         </div>
                       );
                     }
@@ -1038,6 +1055,17 @@ export function OutputPanel({
                   <PlayCircle className="w-3.5 h-3.5" />
                   Generate &amp; Animate
                 </Button>
+              </div>
+            ) : outputExplanation && outputExplanation.startsWith("Error:") ? (
+              <div className="p-4">
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-2">
+                  <p className="text-sm font-semibold text-destructive flex items-center gap-1.5">⚠️ Couldn't build the visual trace</p>
+                  <p className="text-xs text-muted-foreground">{outputExplanation.replace(/^Error:\s*/, "")}</p>
+                  <Button size="sm" variant="outline" onClick={() => onExplainOutput(output || liveOutput)} className="gap-1.5 mt-1">
+                    <PlayCircle className="w-3.5 h-3.5" />
+                    Retry
+                  </Button>
+                </div>
               </div>
             ) : (
               (() => {
