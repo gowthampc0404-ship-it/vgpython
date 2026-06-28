@@ -258,40 +258,66 @@ serve(async (req) => {
       ];
     }
 
-     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    "Authorization": "Bearer AIzaSyAtD8JUyU9fAuBFUZbBl6xWhkHhfnclVII",
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    model: "gemini-2.5-flash-lite",
-    messages: [{ role: "system", content: systemPrompt }, ...userMessages],
-    stream: true,
-  }),
-});
+    // Try a sequence of models so transient 503/overload on one model
+    // automatically falls back to the next.
+    const MODEL_CHAIN = [
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+    ];
+    const GEMINI_KEY = "AIzaSyAtD8JUyU9fAuBFUZbBl6xWhkHhfnclVII";
+    let response: Response | null = null;
+    let lastStatus = 0;
+    let lastBody = "";
+    for (const model of MODEL_CHAIN) {
+      const r = await fetch(
+        "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GEMINI_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: "system", content: systemPrompt }, ...userMessages],
+            stream: true,
+          }),
+        },
+      );
+      if (r.ok) {
+        response = r;
+        break;
+      }
+      lastStatus = r.status;
+      lastBody = await r.text().catch(() => "");
+      console.warn(`Model ${model} returned ${r.status}; trying next.`);
+      // Only fall through on overload/rate-limit style failures.
+      if (r.status !== 503 && r.status !== 429 && r.status !== 500) {
+        break;
+      }
+    }
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    if (!response) {
+      console.error("AI gateway error after fallback chain:", lastStatus, lastBody);
+      if (lastStatus === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
+      if (lastStatus === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 503) {
-        return new Response(JSON.stringify({ error: "The AI model is overloaded right now. Please try again in a moment." }), {
+      if (lastStatus === 503) {
+        return new Response(JSON.stringify({ error: "All AI models are overloaded right now. Please try again in a moment." }), {
           status: 503,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI service error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
