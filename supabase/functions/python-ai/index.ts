@@ -265,7 +265,7 @@ serve(async (req) => {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    model: "gemini-2.5-flash",
+    model: "gemini-2.5-flash-lite",
     messages: [{ role: "system", content: systemPrompt }, ...userMessages],
     stream: true,
   }),
@@ -281,6 +281,12 @@ serve(async (req) => {
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
           status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 503) {
+        return new Response(JSON.stringify({ error: "The AI model is overloaded right now. Please try again in a moment." }), {
+          status: 503,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
