@@ -258,7 +258,7 @@ serve(async (req) => {
       ];
     }
 
-       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions?key=AQ.Ab8RN6K4yq5q_6pn64A3QWhv-CivNTNw0m2cG7nBrqbMTYZAnA", {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions?key=AIzaSyAtD8JUyU9fAuBFUZbBl6xWhkHhfnclVII", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
