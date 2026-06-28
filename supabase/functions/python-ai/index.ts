@@ -258,19 +258,17 @@ serve(async (req) => {
       ];
     }
 
-        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer AQ.Ab8RN6K4yq5q_6pn64A3QWhv-CivNTNw0m2cG7nBrqbMTYZAnA`,
-        "Content-Type": "application/json",
-      },
-
-      body: JSON.stringify({
-        model: "gemini-2.5-flash",
-        messages: [{ role: "system", content: systemPrompt }, ...userMessages],
-        stream: true,
-      }),
-    });
+       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions?key=AQ.Ab8RN6K4yq5q_6pn64A3QWhv-CivNTNw0m2cG7nBrqbMTYZAnA", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    model: "gemini-2.5-flash",
+    messages: [{ role: "system", content: systemPrompt }, ...userMessages],
+    stream: true,
+  }),
+});
 
     if (!response.ok) {
       if (response.status === 429) {
