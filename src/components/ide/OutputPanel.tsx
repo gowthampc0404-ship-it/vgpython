@@ -19,6 +19,7 @@ import {
   PlayCircle,
   RefreshCw,
 } from "lucide-react";
+import { Copy, ShieldAlert, Wrench, Sparkles } from "lucide-react";
 import { AnimatedExecution } from "./AnimatedExecution";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -655,82 +656,179 @@ export function OutputPanel({
         {/* ===== ERRORS TAB ===== */}
         {activeTabValue === "errors" && (
           <ScrollArea className="h-full">
-            <div className="p-4">
+            <div className="p-4 space-y-4">
               {error ? (
                 <>
-                  <pre className="text-destructive font-mono text-sm whitespace-pre-wrap mb-4">
-                    {error}
-                  </pre>
-                  {isExplaining ? (
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Analyzing error...
+                  {/* Raw traceback card */}
+                  {(() => {
+                    const lines = error.split("\n");
+                    const lastNonEmpty = [...lines].reverse().find((l) => l.trim()) || "";
+                    const errMatch = lastNonEmpty.match(/^([A-Za-z_][\w.]*Error|SyntaxError|IndentationError|TabError|Exception|Warning):\s*(.*)$/);
+                    const errType = errMatch?.[1] || "Error";
+                    const errMsg = errMatch?.[2] || lastNonEmpty;
+                    return (
+                      <div className="rounded-lg border border-destructive/30 bg-destructive/5 overflow-hidden">
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-destructive/20 bg-destructive/10">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ShieldAlert className="w-4 h-4 text-destructive shrink-0" />
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-destructive/20 text-destructive uppercase tracking-wider shrink-0">
+                              {errType}
+                            </span>
+                            <span className="text-xs text-foreground truncate font-medium">{errMsg}</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 shrink-0"
+                            onClick={() => navigator.clipboard.writeText(error)}
+                            title="Copy traceback"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                        <div className="bg-[hsl(var(--editor-bg))] max-h-72 overflow-auto">
+                          <table className="w-full font-mono text-xs">
+                            <tbody>
+                              {lines.map((ln, i) => {
+                                const isErrLine = /Error:|Exception:|Warning:/.test(ln);
+                                const isLoc = /^\s*File "/.test(ln) || /^\s+line \d+/.test(ln);
+                                return (
+                                  <tr key={i} className={isErrLine ? "bg-destructive/10" : ""}>
+                                    <td className="select-none text-right pr-3 pl-3 py-0.5 text-muted-foreground/50 border-r border-border/40 w-10">
+                                      {i + 1}
+                                    </td>
+                                    <td className={`px-3 py-0.5 whitespace-pre-wrap break-all ${isErrLine ? "text-destructive font-semibold" : isLoc ? "text-warning" : "text-foreground/80"}`}>
+                                      {ln || "\u00A0"}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {isExplaining && !errorExplanation ? (
+                    <div className="rounded-lg border border-border bg-secondary/50 p-4 flex items-center gap-2 text-muted-foreground text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span>AI is analyzing the error…</span>
                     </div>
+                  ) : errorExplanation?.startsWith("Error:") ? (
+                    renderAIError(
+                      errorExplanation,
+                      "Couldn't analyze the error",
+                      () => onExplainOutput(""), // not used; retry below
+                      <RefreshCw className="w-3.5 h-3.5" />,
+                      "Retry"
+                    )
                   ) : errorExplanation ? (
-                    <div className="border-t border-border pt-4 mt-4 space-y-4">
+                    <div className="space-y-4">
                       {(() => {
                         try {
                           const data = JSON.parse(errorExplanation);
                           return (
                             <>
                               {/* Error Header */}
-                              <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
-                                <span className="text-2xl">{data.error_icon || "🐛"}</span>
-                                <div>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="px-2 py-0.5 rounded text-xs font-bold bg-destructive/20 text-destructive uppercase tracking-wider">{data.error_type}</span>
+                              <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-br from-destructive/15 to-destructive/5 border border-destructive/30">
+                                <span className="text-2xl shrink-0">{data.error_icon || "🐛"}</span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-destructive/20 text-destructive uppercase tracking-wider">{data.error_type}</span>
+                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                      <Sparkles className="w-3 h-3" /> AI analysis
+                                    </span>
                                   </div>
-                                  <h3 className="text-sm font-semibold text-foreground">{data.title}</h3>
-                                  <p className="text-xs text-muted-foreground mt-1">{data.summary}</p>
+                                  <h3 className="text-sm font-semibold text-foreground leading-tight">{data.title}</h3>
+                                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{data.summary}</p>
                                 </div>
                               </div>
 
                               {/* Cause */}
                               {data.cause && (
-                                <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                                  <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">🔍 Root Cause</h4>
-                                  {data.cause.line && <p className="text-xs text-muted-foreground mb-1">Line {data.cause.line}</p>}
-                                  {data.cause.code && <pre className="text-xs font-mono bg-background/50 p-2 rounded mb-2 text-destructive">{data.cause.code}</pre>}
-                                  <p className="text-xs text-muted-foreground">{data.cause.explanation}</p>
+                                <div className="rounded-lg border border-warning/30 bg-warning/5 overflow-hidden">
+                                  <div className="flex items-center justify-between px-3 py-2 bg-warning/10 border-b border-warning/20">
+                                    <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                      <Search className="w-3.5 h-3.5 text-warning" /> Root Cause
+                                    </h4>
+                                    {data.cause.line && (
+                                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-warning/20 text-warning">
+                                        Line {data.cause.line}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="p-3 space-y-2">
+                                    {data.cause.code && (
+                                      <pre className="text-xs font-mono bg-[hsl(var(--editor-bg))] p-2 rounded text-destructive border-l-2 border-destructive overflow-x-auto">{data.cause.code}</pre>
+                                    )}
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{data.cause.explanation}</p>
+                                  </div>
                                 </div>
                               )}
 
                               {/* Fix */}
                               {data.fix && (
-                                <div className="p-3 rounded-lg bg-success/5 border border-success/30">
-                                  <h4 className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1">✅ Fix</h4>
-                                  <p className="text-xs text-muted-foreground mb-2">{data.fix.description}</p>
-                                  {data.fix.changes?.map((change: any, i: number) => (
-                                    <div key={i} className="mb-2 text-xs space-y-1">
-                                      <p className="text-muted-foreground">Line {change.line}:</p>
-                                      <div className="flex items-center gap-2">
-                                        <pre className="font-mono bg-destructive/10 text-destructive px-2 py-1 rounded line-through">{change.before}</pre>
-                                        <span className="text-muted-foreground">→</span>
-                                        <pre className="font-mono bg-success/10 text-success px-2 py-1 rounded">{change.after}</pre>
+                                <div className="rounded-lg border border-success/30 bg-success/5 overflow-hidden">
+                                  <div className="px-3 py-2 bg-success/10 border-b border-success/20">
+                                    <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                      <Wrench className="w-3.5 h-3.5 text-success" /> Suggested Fix
+                                    </h4>
+                                  </div>
+                                  <div className="p-3 space-y-3">
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{data.fix.description}</p>
+                                    {data.fix.changes?.map((change: any, i: number) => (
+                                      <div key={i} className="rounded-md border border-border bg-[hsl(var(--editor-bg))] p-2 space-y-1.5">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Line {change.line}</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-1.5 text-xs">
+                                          <pre className="font-mono bg-destructive/10 text-destructive px-2 py-1 rounded line-through overflow-x-auto">{change.before}</pre>
+                                          <span className="text-muted-foreground text-center hidden sm:block">→</span>
+                                          <pre className="font-mono bg-success/10 text-success px-2 py-1 rounded overflow-x-auto">{change.after}</pre>
+                                        </div>
+                                        {change.reason && <p className="text-[11px] text-muted-foreground italic">{change.reason}</p>}
                                       </div>
-                                      <p className="text-muted-foreground italic">{change.reason}</p>
-                                    </div>
-                                  ))}
-                                  {data.fix.corrected_code && (
-                                    <details className="mt-2">
-                                      <summary className="text-xs text-primary cursor-pointer hover:underline">View corrected code</summary>
-                                      <pre className="text-xs font-mono bg-background/50 p-2 rounded mt-1 text-foreground whitespace-pre-wrap">{data.fix.corrected_code}</pre>
-                                    </details>
-                                  )}
+                                    ))}
+                                    {data.fix.corrected_code && (
+                                      <details className="group">
+                                        <summary className="text-xs text-primary cursor-pointer hover:underline list-none flex items-center gap-1">
+                                          <span className="group-open:rotate-90 transition-transform">▸</span>
+                                          View corrected code
+                                        </summary>
+                                        <div className="relative mt-2">
+                                          <pre className="text-xs font-mono bg-[hsl(var(--editor-bg))] p-3 rounded border border-border text-foreground whitespace-pre-wrap overflow-x-auto">{data.fix.corrected_code}</pre>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="absolute top-1 right-1 h-7 w-7 p-0"
+                                            onClick={() => navigator.clipboard.writeText(data.fix.corrected_code)}
+                                            title="Copy code"
+                                          >
+                                            <Copy className="w-3.5 h-3.5" />
+                                          </Button>
+                                        </div>
+                                      </details>
+                                    )}
+                                  </div>
                                 </div>
                               )}
 
                               {/* Prevention Tips */}
                               {data.prevention_tips?.length > 0 && (
-                                <div className="p-3 rounded-lg bg-muted/30 border border-border">
-                                  <h4 className="text-xs font-semibold text-foreground mb-2">💡 Prevention Tips</h4>
-                                  <div className="space-y-2">
+                                <div className="rounded-lg border border-primary/20 bg-primary/5 overflow-hidden">
+                                  <div className="px-3 py-2 bg-primary/10 border-b border-primary/20">
+                                    <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                      <Lightbulb className="w-3.5 h-3.5 text-primary" /> Prevention Tips
+                                    </h4>
+                                  </div>
+                                  <div className="p-3 grid gap-2">
                                     {data.prevention_tips.map((tip: any, i: number) => (
-                                      <div key={i} className="flex items-start gap-2">
-                                        <span className="text-sm">{tip.icon}</span>
-                                        <div>
+                                      <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-background/40 border border-border/50">
+                                        <span className="text-base shrink-0">{tip.icon}</span>
+                                        <div className="min-w-0">
                                           <p className="text-xs font-medium text-foreground">{tip.tip}</p>
-                                          <p className="text-xs text-muted-foreground">{tip.description}</p>
+                                          <p className="text-[11px] text-muted-foreground leading-relaxed">{tip.description}</p>
                                         </div>
                                       </div>
                                     ))}
@@ -751,7 +849,13 @@ export function OutputPanel({
                   ) : null}
                 </>
               ) : (
-                <p className="text-success text-sm">✓ No errors detected.</p>
+                <div className="flex flex-col items-center justify-center text-center py-12 px-4 rounded-lg border border-success/20 bg-success/5">
+                  <div className="w-12 h-12 rounded-full bg-success/15 flex items-center justify-center mb-3">
+                    <CheckCircle2 className="w-6 h-6 text-success" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">No errors detected</p>
+                  <p className="text-xs text-muted-foreground mt-1">Your code ran cleanly. Hit <span className="font-mono px-1 rounded bg-muted">Run</span> after edits to re-check.</p>
+                </div>
               )}
             </div>
           </ScrollArea>
