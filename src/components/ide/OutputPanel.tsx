@@ -910,15 +910,12 @@ export function OutputPanel({
                       Tracing execution flow...
                     </div>
                   )}
-                  {outputExplanation && outputExplanation.startsWith("Error:") && (
-                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-2">
-                      <p className="text-sm font-semibold text-destructive flex items-center gap-1.5">⚠️ AI service unavailable</p>
-                      <p className="text-xs text-muted-foreground">{outputExplanation.replace(/^Error:\s*/, "")}</p>
-                      <Button size="sm" variant="outline" onClick={() => onExplainOutput(output || liveOutput)} className="gap-1.5 mt-1">
-                        <GitBranch className="w-3.5 h-3.5" />
-                        Retry
-                      </Button>
-                    </div>
+                  {outputExplanation && outputExplanation.startsWith("Error:") && renderAIError(
+                    outputExplanation,
+                    "AI service unavailable",
+                    () => onExplainOutput(output || liveOutput),
+                    <GitBranch className="w-3.5 h-3.5" />,
+                    "Retry"
                   )}
                   {outputExplanation && !outputExplanation.startsWith("Error:") && (() => {
                     try {
