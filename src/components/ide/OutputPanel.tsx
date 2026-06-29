@@ -17,6 +17,7 @@ import {
   Search,
   GitBranch,
   PlayCircle,
+  RefreshCw,
 } from "lucide-react";
 import { AnimatedExecution } from "./AnimatedExecution";
 import { Button } from "@/components/ui/button";
@@ -419,6 +420,72 @@ export function OutputPanel({
       );
     }
   };
+
+  const renderAIError = (
+    raw: string,
+    title: string,
+    onRetry: () => void,
+    buttonIcon: React.ReactNode,
+    buttonLabel: string
+  ) => {
+    const message = raw.replace(/^Error:\s*/, "");
+    let status: number | null = null;
+    let displayMessage = message;
+
+    try {
+      const parsed = JSON.parse(message);
+      if (parsed && typeof parsed.status === "number") {
+        status = parsed.status;
+        displayMessage = parsed.message || message;
+      }
+    } catch {
+      // message isn't our structured JSON, use it as-is
+    }
+
+    try {
+      const inner = JSON.parse(displayMessage);
+      if (inner && typeof inner.error === "string") {
+        displayMessage = inner.error;
+      }
+    } catch {
+      // leave displayMessage unchanged
+    }
+
+    const hint =
+      status === 503
+        ? "Gemini is overloaded right now. Wait a moment and retry."
+        : status === 429
+        ? "Rate limit hit. Please retry in a few seconds."
+        : status === 500
+        ? "AI service error. A retry often succeeds."
+        : "Something went wrong. Please try again.";
+
+    return (
+      <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="px-2 py-0.5 rounded text-xs font-bold bg-destructive/20 text-destructive uppercase tracking-wider">
+            {status ? `HTTP ${status}` : "ERROR"}
+          </span>
+          <h3 className="text-sm font-semibold text-destructive">{title}</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">{displayMessage}</p>
+        <p className="text-xs text-foreground/80 flex items-start gap-1.5">
+          <Lightbulb className="w-3.5 h-3.5 shrink-0 mt-0.5 text-warning" />
+          {hint}
+        </p>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onRetry}
+          className="gap-1.5 mt-1"
+        >
+          {buttonIcon || <RefreshCw className="w-3.5 h-3.5" />}
+          {buttonLabel}
+        </Button>
+      </div>
+    );
+  };
+
   const [chatInput, setChatInput] = useState("");
   const [terminalInput, setTerminalInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -843,15 +910,12 @@ export function OutputPanel({
                       Tracing execution flow...
                     </div>
                   )}
-                  {outputExplanation && outputExplanation.startsWith("Error:") && (
-                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-2">
-                      <p className="text-sm font-semibold text-destructive flex items-center gap-1.5">⚠️ AI service unavailable</p>
-                      <p className="text-xs text-muted-foreground">{outputExplanation.replace(/^Error:\s*/, "")}</p>
-                      <Button size="sm" variant="outline" onClick={() => onExplainOutput(output || liveOutput)} className="gap-1.5 mt-1">
-                        <GitBranch className="w-3.5 h-3.5" />
-                        Retry
-                      </Button>
-                    </div>
+                  {outputExplanation && outputExplanation.startsWith("Error:") && renderAIError(
+                    outputExplanation,
+                    "AI service unavailable",
+                    () => onExplainOutput(output || liveOutput),
+                    <GitBranch className="w-3.5 h-3.5" />,
+                    "Retry"
                   )}
                   {outputExplanation && !outputExplanation.startsWith("Error:") && (() => {
                     try {
@@ -1058,14 +1122,13 @@ export function OutputPanel({
               </div>
             ) : outputExplanation && outputExplanation.startsWith("Error:") ? (
               <div className="p-4">
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-2">
-                  <p className="text-sm font-semibold text-destructive flex items-center gap-1.5">⚠️ Couldn't build the visual trace</p>
-                  <p className="text-xs text-muted-foreground">{outputExplanation.replace(/^Error:\s*/, "")}</p>
-                  <Button size="sm" variant="outline" onClick={() => onExplainOutput(output || liveOutput)} className="gap-1.5 mt-1">
-                    <PlayCircle className="w-3.5 h-3.5" />
-                    Retry
-                  </Button>
-                </div>
+                {renderAIError(
+                  outputExplanation,
+                  "Couldn't build the visual trace",
+                  () => onExplainOutput(output || liveOutput),
+                  <PlayCircle className="w-3.5 h-3.5" />,
+                  "Retry"
+                )}
               </div>
             ) : (
               (() => {

@@ -37,7 +37,8 @@ export function useAIExplain() {
 
       if (!resp.ok) {
         const errText = await resp.text();
-        throw new Error(errText || `Error ${resp.status}`);
+        const message = errText || `Error ${resp.status}`;
+        throw new Error(JSON.stringify({ status: resp.status, message }));
       }
 
       if (!resp.body) throw new Error("No response body");
