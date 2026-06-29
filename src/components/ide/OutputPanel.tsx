@@ -1122,14 +1122,13 @@ export function OutputPanel({
               </div>
             ) : outputExplanation && outputExplanation.startsWith("Error:") ? (
               <div className="p-4">
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-2">
-                  <p className="text-sm font-semibold text-destructive flex items-center gap-1.5">⚠️ Couldn't build the visual trace</p>
-                  <p className="text-xs text-muted-foreground">{outputExplanation.replace(/^Error:\s*/, "")}</p>
-                  <Button size="sm" variant="outline" onClick={() => onExplainOutput(output || liveOutput)} className="gap-1.5 mt-1">
-                    <PlayCircle className="w-3.5 h-3.5" />
-                    Retry
-                  </Button>
-                </div>
+                {renderAIError(
+                  outputExplanation,
+                  "Couldn't build the visual trace",
+                  () => onExplainOutput(output || liveOutput),
+                  <PlayCircle className="w-3.5 h-3.5" />,
+                  "Retry"
+                )}
               </div>
             ) : (
               (() => {
