@@ -716,13 +716,17 @@ export function OutputPanel({
                       <span>AI is analyzing the error…</span>
                     </div>
                   ) : errorExplanation?.startsWith("Error:") ? (
-                    renderAIError(
-                      errorExplanation,
-                      "Couldn't analyze the error",
-                      () => onExplainOutput(""), // not used; retry below
-                      <RefreshCw className="w-3.5 h-3.5" />,
-                      "Retry"
-                    )
+                    <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-destructive/20 text-destructive uppercase tracking-wider">AI</span>
+                        <h3 className="text-sm font-semibold text-destructive">Couldn't analyze the error</h3>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{errorExplanation.replace(/^Error:\s*/, "")}</p>
+                      <p className="text-[11px] text-foreground/70 flex items-start gap-1.5 pt-1">
+                        <Lightbulb className="w-3 h-3 mt-0.5 text-warning shrink-0" />
+                        Re-run the code to retry the AI analysis.
+                      </p>
+                    </div>
                   ) : errorExplanation ? (
                     <div className="space-y-4">
                       {(() => {
