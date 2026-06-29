@@ -17,6 +17,7 @@ import {
   Search,
   GitBranch,
   PlayCircle,
+  RefreshCw,
 } from "lucide-react";
 import { AnimatedExecution } from "./AnimatedExecution";
 import { Button } from "@/components/ui/button";
