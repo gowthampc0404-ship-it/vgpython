@@ -694,13 +694,31 @@ export function OutputPanel({
                               {lines.map((ln, i) => {
                                 const isErrLine = /Error:|Exception:|Warning:/.test(ln);
                                 const isLoc = /^\s*File "/.test(ln) || /^\s+line \d+/.test(ln);
+                                const lineMatch = ln.match(/(?:line|Line)\s+(\d+)/);
+                                const jumpLine = lineMatch ? parseInt(lineMatch[1], 10) : null;
+                                const clickable = !!(jumpLine && onJumpToLine);
                                 return (
-                                  <tr key={i} className={isErrLine ? "bg-destructive/10" : ""}>
+                                  <tr
+                                    key={i}
+                                    className={`${isErrLine ? "bg-destructive/10" : ""} ${clickable ? "cursor-pointer hover:bg-primary/10 transition-colors" : ""}`}
+                                    onClick={clickable ? () => onJumpToLine!(jumpLine!) : undefined}
+                                    title={clickable ? `Jump to line ${jumpLine} in editor` : undefined}
+                                  >
                                     <td className="select-none text-right pr-3 pl-3 py-0.5 text-muted-foreground/50 border-r border-border/40 w-10">
                                       {i + 1}
                                     </td>
                                     <td className={`px-3 py-0.5 whitespace-pre-wrap break-all ${isErrLine ? "text-destructive font-semibold" : isLoc ? "text-warning" : "text-foreground/80"}`}>
-                                      {ln || "\u00A0"}
+                                      {clickable ? (
+                                        <>
+                                          {ln.slice(0, lineMatch!.index!)}
+                                          <span className="underline decoration-dotted decoration-primary text-primary font-semibold">
+                                            {lineMatch![0]}
+                                          </span>
+                                          {ln.slice(lineMatch!.index! + lineMatch![0].length)}
+                                        </>
+                                      ) : (
+                                        ln || "\u00A0"
+                                      )}
                                     </td>
                                   </tr>
                                 );
@@ -730,115 +748,138 @@ export function OutputPanel({
                       </p>
                     </div>
                   ) : errorExplanation ? (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {(() => {
                         try {
                           const data = JSON.parse(errorExplanation);
                           return (
                             <>
-                              {/* Error Header */}
-                              <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-br from-destructive/15 to-destructive/5 border border-destructive/30">
-                                <span className="text-2xl shrink-0">{data.error_icon || "🐛"}</span>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-destructive/20 text-destructive uppercase tracking-wider">{data.error_type}</span>
-                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                                      <Sparkles className="w-3 h-3" /> AI analysis
-                                    </span>
-                                  </div>
-                                  <h3 className="text-sm font-semibold text-foreground leading-tight">{data.title}</h3>
-                                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{data.summary}</p>
+                              {/* 1. Error Header Card — matches line-card aesthetic */}
+                              <div className="bg-secondary rounded-lg p-3 space-y-2 border border-border">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Error</span>
+                                  <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded bg-red-500 uppercase tracking-wider">
+                                    {data.error_type || "ERROR"}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground flex items-center gap-1 ml-auto">
+                                    <Sparkles className="w-3 h-3" /> AI
+                                  </span>
+                                </div>
+                                <div className="flex items-start gap-2.5">
+                                  <span className="text-2xl leading-none shrink-0">{data.error_icon || "🐛"}</span>
+                                  <h3 className="text-sm font-semibold text-primary leading-snug pt-0.5">{data.title}</h3>
                                 </div>
                               </div>
 
-                              {/* Cause */}
-                              {data.cause && (
-                                <div className="rounded-lg border border-warning/30 bg-warning/5 overflow-hidden">
-                                  <div className="flex items-center justify-between px-3 py-2 bg-warning/10 border-b border-warning/20">
-                                    <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                      <Search className="w-3.5 h-3.5 text-warning" /> Root Cause
-                                    </h4>
-                                    {data.cause.line && (
-                                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-warning/20 text-warning">
-                                        Line {data.cause.line}
-                                      </span>
-                                    )}
+                              {/* 2. Description Card */}
+                              {data.summary && (
+                                <div className="bg-secondary rounded-lg p-3 space-y-2 border border-border">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded bg-blue-500 uppercase tracking-wider">
+                                      Summary
+                                    </span>
                                   </div>
-                                  <div className="p-3 space-y-2">
-                                    {data.cause.code && (
-                                      <pre className="text-xs font-mono bg-[hsl(var(--editor-bg))] p-2 rounded text-destructive border-l-2 border-destructive overflow-x-auto">{data.cause.code}</pre>
-                                    )}
-                                    <p className="text-xs text-muted-foreground leading-relaxed">{data.cause.explanation}</p>
-                                  </div>
+                                  <p className="text-xs text-muted-foreground leading-relaxed">{data.summary}</p>
+                                  {data.cause?.explanation && (
+                                    <p className="text-xs text-foreground/90 leading-relaxed pt-1 border-t border-border">
+                                      <span className="text-warning font-medium">Why:</span> {data.cause.explanation}
+                                    </p>
+                                  )}
                                 </div>
                               )}
 
-                              {/* Fix */}
-                              {data.fix && (
-                                <div className="rounded-lg border border-success/30 bg-success/5 overflow-hidden">
-                                  <div className="px-3 py-2 bg-success/10 border-b border-success/20">
-                                    <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                      <Wrench className="w-3.5 h-3.5 text-success" /> Suggested Fix
-                                    </h4>
+                              {/* 3. Code Diff Card */}
+                              {(data.cause?.code || data.fix?.changes?.length) && (
+                                <div className="bg-secondary rounded-lg p-3 space-y-2 border border-border">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded bg-orange-500 uppercase tracking-wider">
+                                      Fix
+                                    </span>
+                                    {data.cause?.line && (
+                                      <button
+                                        onClick={() => onJumpToLine?.(Number(data.cause.line))}
+                                        className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-warning/20 text-warning hover:bg-warning/30 transition-colors"
+                                        title="Jump to line in editor"
+                                      >
+                                        Line {data.cause.line} →
+                                      </button>
+                                    )}
                                   </div>
-                                  <div className="p-3 space-y-3">
+                                  {data.fix?.description && (
                                     <p className="text-xs text-muted-foreground leading-relaxed">{data.fix.description}</p>
-                                    {data.fix.changes?.map((change: any, i: number) => (
-                                      <div key={i} className="rounded-md border border-border bg-[hsl(var(--editor-bg))] p-2 space-y-1.5">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Line {change.line}</span>
+                                  )}
+                                  {data.cause?.code && !data.fix?.changes?.length && (
+                                    <pre className="text-xs font-mono bg-[hsl(var(--editor-bg))] p-2 rounded text-destructive border-l-2 border-destructive overflow-x-auto">{data.cause.code}</pre>
+                                  )}
+                                  {data.fix?.changes?.map((change: any, i: number) => (
+                                    <div key={i} className="rounded-md bg-[hsl(var(--editor-bg))] p-2 space-y-1.5">
+                                      <button
+                                        onClick={() => onJumpToLine?.(Number(change.line))}
+                                        className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+                                        title="Jump to line in editor"
+                                      >
+                                        Line {change.line} →
+                                      </button>
+                                      <div className="space-y-1 text-xs">
+                                        <div className="flex items-start gap-2">
+                                          <span className="text-[10px] font-bold text-destructive px-1.5 py-0.5 rounded bg-destructive/20 uppercase shrink-0 mt-0.5">Before</span>
+                                          <pre className="font-mono text-destructive line-through overflow-x-auto flex-1">{change.before}</pre>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-1.5 text-xs">
-                                          <pre className="font-mono bg-destructive/10 text-destructive px-2 py-1 rounded line-through overflow-x-auto">{change.before}</pre>
-                                          <span className="text-muted-foreground text-center hidden sm:block">→</span>
-                                          <pre className="font-mono bg-success/10 text-success px-2 py-1 rounded overflow-x-auto">{change.after}</pre>
+                                        <div className="flex items-start gap-2">
+                                          <span className="text-[10px] font-bold text-success px-1.5 py-0.5 rounded bg-success/20 uppercase shrink-0 mt-0.5">After</span>
+                                          <pre className="font-mono text-success overflow-x-auto flex-1">{change.after}</pre>
                                         </div>
-                                        {change.reason && <p className="text-[11px] text-muted-foreground italic">{change.reason}</p>}
                                       </div>
-                                    ))}
-                                    {data.fix.corrected_code && (
-                                      <details className="group">
-                                        <summary className="text-xs text-primary cursor-pointer hover:underline list-none flex items-center gap-1">
-                                          <span className="group-open:rotate-90 transition-transform">▸</span>
-                                          View corrected code
-                                        </summary>
-                                        <div className="relative mt-2">
-                                          <pre className="text-xs font-mono bg-[hsl(var(--editor-bg))] p-3 rounded border border-border text-foreground whitespace-pre-wrap overflow-x-auto">{data.fix.corrected_code}</pre>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="absolute top-1 right-1 h-7 w-7 p-0"
-                                            onClick={() => navigator.clipboard.writeText(data.fix.corrected_code)}
-                                            title="Copy code"
-                                          >
-                                            <Copy className="w-3.5 h-3.5" />
-                                          </Button>
-                                        </div>
-                                      </details>
-                                    )}
-                                  </div>
+                                      {change.reason && (
+                                        <p className="text-[11px] text-muted-foreground italic pt-1">{change.reason}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                  {data.fix?.corrected_code && (
+                                    <details className="group pt-1">
+                                      <summary className="text-xs text-primary cursor-pointer hover:underline list-none flex items-center gap-1">
+                                        <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
+                                        View full corrected code
+                                      </summary>
+                                      <div className="relative mt-2">
+                                        <pre className="text-xs font-mono bg-[hsl(var(--editor-bg))] p-3 rounded text-foreground whitespace-pre-wrap overflow-x-auto">{data.fix.corrected_code}</pre>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="absolute top-1 right-1 h-7 w-7 p-0"
+                                          onClick={() => navigator.clipboard.writeText(data.fix.corrected_code)}
+                                          title="Copy code"
+                                        >
+                                          <Copy className="w-3.5 h-3.5" />
+                                        </Button>
+                                      </div>
+                                    </details>
+                                  )}
                                 </div>
                               )}
 
-                              {/* Prevention Tips */}
+                              {/* 4. Prevention Tips Card */}
                               {data.prevention_tips?.length > 0 && (
-                                <div className="rounded-lg border border-primary/20 bg-primary/5 overflow-hidden">
-                                  <div className="px-3 py-2 bg-primary/10 border-b border-primary/20">
-                                    <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                                      <Lightbulb className="w-3.5 h-3.5 text-primary" /> Prevention Tips
-                                    </h4>
+                                <div className="bg-secondary rounded-lg p-3 space-y-2 border border-border">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded bg-yellow-500 uppercase tracking-wider">
+                                      Prevention
+                                    </span>
+                                    <span className="text-xs font-semibold text-primary flex items-center gap-1">
+                                      <Lightbulb className="w-3 h-3" /> Tips to avoid this
+                                    </span>
                                   </div>
-                                  <div className="p-3 grid gap-2">
+                                  <ul className="space-y-1.5 pt-1">
                                     {data.prevention_tips.map((tip: any, i: number) => (
-                                      <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-background/40 border border-border/50">
-                                        <span className="text-base shrink-0">{tip.icon}</span>
+                                      <li key={i} className="flex items-start gap-2 text-xs">
+                                        <span className="text-base leading-none shrink-0 mt-0.5">{tip.icon || "💡"}</span>
                                         <div className="min-w-0">
-                                          <p className="text-xs font-medium text-foreground">{tip.tip}</p>
+                                          <p className="font-medium text-foreground">{tip.tip}</p>
                                           <p className="text-[11px] text-muted-foreground leading-relaxed">{tip.description}</p>
                                         </div>
-                                      </div>
+                                      </li>
                                     ))}
-                                  </div>
+                                  </ul>
                                 </div>
                               )}
                             </>
