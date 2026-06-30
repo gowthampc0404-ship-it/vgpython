@@ -1,6 +1,8 @@
-import { Play, BookOpen, Bug, FileCode, Loader2, Clock } from "lucide-react";
+import { useState } from "react";
+import { Play, BookOpen, Bug, FileCode, Loader2, Clock, MessageSquarePlus } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
+import { FeedbackDialog } from "./FeedbackDialog";
 
 interface HeaderProps {
   isReady: boolean;
@@ -23,6 +25,7 @@ export function Header({
   onExample,
   onBuggyCode
 }: HeaderProps) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const buildTime = new Date(__BUILD_TIME__);
   const lastUpdated = buildTime.toLocaleString(undefined, {
     dateStyle: "medium",
@@ -97,6 +100,15 @@ export function Header({
           <Bug className="w-4 h-4" />
           Buggy Code
         </Button>
+
+        <Button
+          onClick={() => setFeedbackOpen(true)}
+          size="sm"
+          variant="ghost"
+          className="text-foreground/80 hover:text-foreground hover:bg-foreground/10 gap-1.5">
+          <MessageSquarePlus className="w-4 h-4" />
+          Feedback
+        </Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -117,6 +129,7 @@ export function Header({
           "Initializing..."}
         </span>
       </div>
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </header>);
 
 }
