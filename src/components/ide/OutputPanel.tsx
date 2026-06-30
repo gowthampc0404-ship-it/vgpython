@@ -694,13 +694,31 @@ export function OutputPanel({
                               {lines.map((ln, i) => {
                                 const isErrLine = /Error:|Exception:|Warning:/.test(ln);
                                 const isLoc = /^\s*File "/.test(ln) || /^\s+line \d+/.test(ln);
+                                const lineMatch = ln.match(/(?:line|Line)\s+(\d+)/);
+                                const jumpLine = lineMatch ? parseInt(lineMatch[1], 10) : null;
+                                const clickable = !!(jumpLine && onJumpToLine);
                                 return (
-                                  <tr key={i} className={isErrLine ? "bg-destructive/10" : ""}>
+                                  <tr
+                                    key={i}
+                                    className={`${isErrLine ? "bg-destructive/10" : ""} ${clickable ? "cursor-pointer hover:bg-primary/10 transition-colors" : ""}`}
+                                    onClick={clickable ? () => onJumpToLine!(jumpLine!) : undefined}
+                                    title={clickable ? `Jump to line ${jumpLine} in editor` : undefined}
+                                  >
                                     <td className="select-none text-right pr-3 pl-3 py-0.5 text-muted-foreground/50 border-r border-border/40 w-10">
                                       {i + 1}
                                     </td>
                                     <td className={`px-3 py-0.5 whitespace-pre-wrap break-all ${isErrLine ? "text-destructive font-semibold" : isLoc ? "text-warning" : "text-foreground/80"}`}>
-                                      {ln || "\u00A0"}
+                                      {clickable ? (
+                                        <>
+                                          {ln.slice(0, lineMatch!.index!)}
+                                          <span className="underline decoration-dotted decoration-primary text-primary font-semibold">
+                                            {lineMatch![0]}
+                                          </span>
+                                          {ln.slice(lineMatch!.index! + lineMatch![0].length)}
+                                        </>
+                                      ) : (
+                                        ln || "\u00A0"
+                                      )}
                                     </td>
                                   </tr>
                                 );
