@@ -208,6 +208,7 @@ const Index = () => {
             onRefreshPackages={getInstalledPackages}
             isPyodideReady={isReady}
             onAnimateLineChange={handleAnimateLineChange}
+            onJumpToLine={(line) => setHighlightedLine(line)}
           />
         </div>
       </div>
