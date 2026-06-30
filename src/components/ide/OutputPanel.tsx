@@ -55,6 +55,7 @@ interface OutputPanelProps {
   onRefreshPackages: () => void;
   isPyodideReady: boolean;
   onAnimateLineChange?: (line: number | null) => void;
+  onJumpToLine?: (line: number) => void;
 }
 
 export function OutputPanel({
@@ -85,6 +86,7 @@ export function OutputPanel({
   onRefreshPackages,
   isPyodideReady,
   onAnimateLineChange,
+  onJumpToLine,
 }: OutputPanelProps) {
   const [internalTab, setInternalTab] = useState<Tab>("output");
   const activeTabValue = externalTab || internalTab;
