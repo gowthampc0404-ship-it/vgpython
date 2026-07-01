@@ -1,10 +1,38 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = new Set([
+  "https://vgpython.lovable.app",
+  "https://id-preview--236688fe-8e88-4e7e-9884-b420319edec2.lovable.app",
+  "http://localhost:8080",
+  "http://localhost:5173",
+]);
+
+function buildCorsHeaders(origin: string | null): Record<string, string> {
+  const allowed = origin && (ALLOWED_ORIGINS.has(origin) || /\.lovable\.app$/.test(new URL(origin).hostname))
+    ? origin
+    : "https://vgpython.lovable.app";
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Vary": "Origin",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  };
+}
+
+const VALID_TYPES = new Set([
+  "explain",
+  "explain_line",
+  "explain_all_lines",
+  "explain_error",
+  "chat",
+  "explain_output",
+]);
+const MAX_CODE_LEN = 10_000;
+const MAX_ERROR_LEN = 5_000;
+const MAX_OUTPUT_LEN = 10_000;
+const MAX_MSG_COUNT = 50;
+const MAX_MSG_LEN = 2_000;
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   explain: `You are a Python teaching assistant. The user will provide Python code. Provide a structured explanation as a JSON object.
@@ -205,16 +233,88 @@ CRITICAL: Do NOT skip any line. You MUST include EVERY single line of the code i
 };
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req.headers.get("Origin"));
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { type, code, lineNumber, error: userError, messages, output: codeOutput } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+  const jsonResp = (status: number, body: Record<string, unknown>) =>
+    new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
-    const systemPrompt = SYSTEM_PROMPTS[type] || SYSTEM_PROMPTS.chat;
+  // --- Authentication: require a valid Supabase-issued JWT ---
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) {
+    return jsonResp(401, { error: "Unauthorized" });
+  }
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    );
+    const token = authHeader.slice("Bearer ".length);
+    const { data, error } = await supabase.auth.getClaims(token);
+    if (error || !data?.claims) {
+      return jsonResp(401, { error: "Unauthorized" });
+    }
+  } catch (_e) {
+    return jsonResp(401, { error: "Unauthorized" });
+  }
+
+  try {
+    let payload: any;
+    try {
+      payload = await req.json();
+    } catch {
+      return jsonResp(400, { error: "Invalid JSON body" });
+    }
+    const { type, code, lineNumber, error: userError, messages, output: codeOutput } = payload ?? {};
+
+    // --- Input validation ---
+    if (typeof type !== "string" || !VALID_TYPES.has(type)) {
+      return jsonResp(400, { error: "Invalid type" });
+    }
+    if (code !== undefined && (typeof code !== "string" || code.length > MAX_CODE_LEN)) {
+      return jsonResp(400, { error: "Code missing or too large" });
+    }
+    if (userError !== undefined && (typeof userError !== "string" || userError.length > MAX_ERROR_LEN)) {
+      return jsonResp(400, { error: "Error text too large" });
+    }
+    if (codeOutput !== undefined && (typeof codeOutput !== "string" || codeOutput.length > MAX_OUTPUT_LEN)) {
+      return jsonResp(400, { error: "Output too large" });
+    }
+    if (type === "explain_line") {
+      if (!Number.isInteger(lineNumber) || lineNumber < 1 || lineNumber > 100_000) {
+        return jsonResp(400, { error: "Invalid lineNumber" });
+      }
+    }
+    let safeMessages: Array<{ role: string; content: string }> = [];
+    if (messages !== undefined) {
+      if (!Array.isArray(messages) || messages.length > MAX_MSG_COUNT) {
+        return jsonResp(400, { error: "Too many messages" });
+      }
+      for (const m of messages) {
+        if (
+          !m || typeof m !== "object" ||
+          (m.role !== "user" && m.role !== "assistant" && m.role !== "system") ||
+          typeof m.content !== "string" || m.content.length > MAX_MSG_LEN
+        ) {
+          return jsonResp(400, { error: "Invalid message" });
+        }
+        safeMessages.push({ role: m.role, content: m.content });
+      }
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("python-ai config error: LOVABLE_API_KEY missing");
+      return jsonResp(503, { error: "Service unavailable" });
+    }
+
+    const systemPrompt = SYSTEM_PROMPTS[type];
 
     let userMessages: Array<{ role: string; content: string }> = [];
 
@@ -254,7 +354,7 @@ serve(async (req) => {
           role: "system",
           content: `The user is working on this Python code:\n\`\`\`python\n${code}\n\`\`\``,
         },
-        ...(messages || []),
+        ...safeMessages,
       ];
     }
 
@@ -301,36 +401,24 @@ serve(async (req) => {
     if (!response) {
       console.error("AI gateway error after fallback chain:", lastStatus, lastBody);
       if (lastStatus === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResp(429, { error: "Rate limit exceeded. Please try again later." });
       }
       if (lastStatus === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResp(402, { error: "AI credits exhausted. Please add credits." });
       }
       if (lastStatus === 503) {
-        return new Response(JSON.stringify({ error: "All AI models are overloaded right now. Please try again in a moment." }), {
-          status: 503,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return jsonResp(503, { error: "All AI models are overloaded right now. Please try again in a moment." });
       }
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResp(502, { error: "AI service unavailable" });
     }
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
-    console.error("python-ai error:", e);
+    console.error("python-ai error:", e); // server-side only
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
