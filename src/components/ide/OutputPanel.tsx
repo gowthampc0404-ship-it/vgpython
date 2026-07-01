@@ -751,7 +751,10 @@ export function OutputPanel({
                     <div className="space-y-3">
                       {(() => {
                         try {
-                          const data = JSON.parse(errorExplanation);
+                          let jsonStr = errorExplanation.trim();
+                          const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+                          if (fenceMatch) jsonStr = fenceMatch[1].trim();
+                          const data = JSON.parse(jsonStr);
                           return (
                             <>
                               {/* 1. Error Header Card — matches line-card aesthetic */}
