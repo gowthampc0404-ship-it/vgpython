@@ -250,18 +250,24 @@ serve(async (req) => {
   if (!authHeader.startsWith("Bearer ")) {
     return jsonResp(401, { error: "Unauthorized" });
   }
-  try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    );
-    const token = authHeader.slice("Bearer ".length);
-    const { data, error } = await supabase.auth.getClaims(token);
-    if (error || !data?.claims) {
-      return jsonResp(401, { error: "Unauthorized" });
+  {
+    const token = authHeader.slice("Bearer ".length).trim();
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    // Accept the project's anon key (public app has no login) OR a valid user JWT.
+    let ok = anonKey && token === anonKey;
+    if (!ok) {
+      try {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          anonKey,
+        );
+        const { data, error } = await supabase.auth.getClaims(token);
+        ok = !error && !!data?.claims;
+      } catch (_e) {
+        ok = false;
+      }
     }
-  } catch (_e) {
-    return jsonResp(401, { error: "Unauthorized" });
+    if (!ok) return jsonResp(401, { error: "Unauthorized" });
   }
 
   try {
