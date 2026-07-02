@@ -1,23 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const ALLOWED_ORIGINS = new Set([
-  "https://vgpython.lovable.app",
-  "https://id-preview--236688fe-8e88-4e7e-9884-b420319edec2.lovable.app",
-  "http://localhost:8080",
-  "http://localhost:5173",
-]);
-
-function buildCorsHeaders(origin: string | null): Record<string, string> {
-  const allowed = origin && (ALLOWED_ORIGINS.has(origin) || /\.lovable\.app$/.test(new URL(origin).hostname))
-    ? origin
-    : "https://vgpython.lovable.app";
-  return {
-    "Access-Control-Allow-Origin": allowed,
-    "Vary": "Origin",
-    "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  };
-}
+const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
 
 const VALID_TYPES = new Set([
   "explain",
@@ -232,8 +220,6 @@ CRITICAL: Do NOT skip any line. You MUST include EVERY single line of the code i
 };
 
 serve(async (req) => {
-  const corsHeaders = buildCorsHeaders(req.headers.get("Origin"));
-
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
