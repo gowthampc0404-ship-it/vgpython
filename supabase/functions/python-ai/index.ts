@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = new Set([
   "https://vgpython.lovable.app",
@@ -245,30 +244,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  // --- Authentication: require a valid Supabase-issued JWT ---
-  const authHeader = req.headers.get("Authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    return jsonResp(401, { error: "Unauthorized" });
-  }
-  {
-    const token = authHeader.slice("Bearer ".length).trim();
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    // Accept the project's anon key (public app has no login) OR a valid user JWT.
-    let ok = anonKey && token === anonKey;
-    if (!ok) {
-      try {
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL") ?? "",
-          anonKey,
-        );
-        const { data, error } = await supabase.auth.getClaims(token);
-        ok = !error && !!data?.claims;
-      } catch (_e) {
-        ok = false;
-      }
-    }
-    if (!ok) return jsonResp(401, { error: "Unauthorized" });
-  }
+  // Public endpoint: no auth required (verify_jwt = false in config.toml).
 
   try {
     let payload: any;
