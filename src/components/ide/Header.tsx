@@ -37,7 +37,7 @@ export function Header({
         <img alt="PyLearn IDE Logo" className="w-8 h-8 rounded" src="/lovable-uploads/0cc17d65-000b-4365-b538-53042a9452ef.png" />
         <div>
           <h1 className="text-lg font-bold text-foreground tracking-tight whitespace-pre-line font-mono border-double rounded-none">
-            {"PYTHON\n~By Gowtham\n(2025-26)"}
+            {"VGPYTHON\n~By Gowtham\n(2025-26)"}
           </h1>
           <p className="text-xs text-foreground/60">
             Interactive Python Learning Environment
