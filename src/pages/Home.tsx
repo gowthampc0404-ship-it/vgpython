@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import introVideo from "@/assets/vgpython-intro.mp4.asset.json";
 
 function getAnonId(): string {
   const key = "pylearn_anon_id";
@@ -141,7 +140,7 @@ export default function Home() {
         >
           <video
             className="h-full w-full object-contain"
-            src={introVideo.url}
+            src="/vgpython-intro.mp4"
             autoPlay
             playsInline
             onEnded={() => setShowIntro(false)}
