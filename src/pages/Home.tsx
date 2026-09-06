@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   Send,
   Loader2,
   Sparkles,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +92,20 @@ const PREVIEW_CODE = [
 export default function Home() {
   const [topic, setTopic] = useState("");
   const [sending, setSending] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
+
+  useEffect(() => {
+    if (!showIntro) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const fallbackTimer = window.setTimeout(() => setShowIntro(false), 8000);
+
+    return () => {
+      window.clearTimeout(fallbackTimer);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showIntro]);
 
   const submitTopic = async () => {
     const trimmed = topic.trim();
@@ -119,6 +134,35 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {showIntro && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-background"
+          role="dialog"
+          aria-label="VGPYTHON introduction"
+        >
+          <video
+            className="h-full w-full object-contain"
+            src="/vgpython-intro.mp4"
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            onEnded={() => setShowIntro(false)}
+            aria-label="VGPYTHON opening animation"
+          />
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowIntro(false)}
+            className="absolute right-4 top-4 gap-1.5 border border-border bg-secondary/90 shadow-lg backdrop-blur-sm"
+            aria-label="Skip introduction"
+          >
+            Skip <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-border">
         <div
