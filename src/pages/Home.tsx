@@ -142,7 +142,9 @@ export default function Home() {
             className="h-full w-full object-contain"
             src="/vgpython-intro.mp4"
             autoPlay
+            muted
             playsInline
+            preload="auto"
             onEnded={() => setShowIntro(false)}
             onError={() => setShowIntro(false)}
             aria-label="VGPYTHON opening animation"
