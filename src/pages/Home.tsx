@@ -99,8 +99,10 @@ export default function Home() {
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const fallbackTimer = window.setTimeout(() => setShowIntro(false), 8000);
 
     return () => {
+      window.clearTimeout(fallbackTimer);
       document.body.style.overflow = previousOverflow;
     };
   }, [showIntro]);
@@ -146,7 +148,6 @@ export default function Home() {
             playsInline
             preload="auto"
             onEnded={() => setShowIntro(false)}
-            onError={() => setShowIntro(false)}
             aria-label="VGPYTHON opening animation"
           />
           <Button
