@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage: {
+        Row: {
+          anon_id: string
+          created_at: string
+          id: string
+          request_type: string
+        }
+        Insert: {
+          anon_id: string
+          created_at?: string
+          id?: string
+          request_type: string
+        }
+        Update: {
+          anon_id?: string
+          created_at?: string
+          id?: string
+          request_type?: string
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           anon_id: string
