@@ -32,9 +32,15 @@ export function useAIExplain() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({ type, code, ...extra }),
+      body: JSON.stringify({ type, code, ...extra }),
         }
       );
+
+      // Best-effort usage logging (never blocks the response)
+      supabase
+        .from("ai_usage")
+        .insert({ anon_id: getAnonId(), request_type: type })
+        .then(() => {}, () => {});
 
       if (!resp.ok) {
         const errText = await resp.text();
