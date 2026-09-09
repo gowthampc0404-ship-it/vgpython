@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getAnonId } from "@/lib/anonId";
 
 interface Message {
   role: "user" | "assistant";
