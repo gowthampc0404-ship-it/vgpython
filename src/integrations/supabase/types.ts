@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_credit_resets: {
+        Row: {
+          anon_id: string
+          created_at: string
+          id: string
+          reset_at: string
+        }
+        Insert: {
+          anon_id: string
+          created_at?: string
+          id?: string
+          reset_at?: string
+        }
+        Update: {
+          anon_id?: string
+          created_at?: string
+          id?: string
+          reset_at?: string
+        }
+        Relationships: []
+      }
       ai_usage: {
         Row: {
           anon_id: string
