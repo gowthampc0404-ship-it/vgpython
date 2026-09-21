@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Play, BookOpen, Bug, FileCode, Loader2, Clock, MessageSquarePlus } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Play, BookOpen, Bug, FileCode, Loader2, Clock, MessageSquarePlus, ShieldCheck } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { FeedbackDialog } from "./FeedbackDialog";
@@ -108,6 +109,18 @@ export function Header({
           className="text-foreground/80 hover:text-foreground hover:bg-foreground/10 gap-1.5">
           <MessageSquarePlus className="w-4 h-4" />
           Feedback
+        </Button>
+
+        <Button
+          asChild
+          size="sm"
+          variant="ghost"
+          className="text-foreground/60 hover:text-foreground hover:bg-foreground/10 gap-1.5"
+          title="Admin">
+          <Link to="/admin">
+            <ShieldCheck className="w-4 h-4" />
+            Admin
+          </Link>
         </Button>
       </div>
 

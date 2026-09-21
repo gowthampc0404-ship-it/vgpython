@@ -12,6 +12,7 @@ import {
   Send,
   Loader2,
   Sparkles,
+  ShieldCheck,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -341,6 +342,10 @@ export default function Home() {
             </Link>
             <Link to="/ide" className="text-muted-foreground hover:text-foreground">
               Feedback
+            </Link>
+            <Link to="/admin" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Admin
             </Link>
           </nav>
           <p className="font-mono text-xs text-muted-foreground">
