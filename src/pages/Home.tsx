@@ -12,6 +12,7 @@ import {
   Send,
   Loader2,
   Sparkles,
+  ShieldCheck,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
