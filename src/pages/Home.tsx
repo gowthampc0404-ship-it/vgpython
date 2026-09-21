@@ -36,6 +36,7 @@ const MODULES = [
     description:
       "Master the logic. Step-by-step breakdowns of loops, functions, and Stack implementations with easy-to-copy code snippets.",
     action: "Explore Stacks & Functions",
+    to: "/learn/python",
   },
   {
     icon: FileCode2,
@@ -43,6 +44,7 @@ const MODULES = [
     description:
       "Text, Binary, and CSV files demystified. Use interactive simulators to see read/write operations in action.",
     action: "Try File Simulators",
+    to: "/learn/files",
   },
   {
     icon: Database,
@@ -50,6 +52,7 @@ const MODULES = [
     description:
       "Connect Python to MySQL without syntax errors. Ready-to-use boilerplate code for all CRUD operations.",
     action: "View MySQL Scripts",
+    to: "/learn/mysql",
   },
   {
     icon: FolderCheck,
@@ -57,6 +60,7 @@ const MODULES = [
     description:
       "Full-marks blueprint. Formatted and verified scripts ready to compile into your final board submission.",
     action: "Download Practical Code",
+    to: "/practicals",
   },
 ];
 
@@ -221,7 +225,7 @@ export default function Home() {
           {MODULES.map((m) => (
             <Link
               key={m.title}
-              to="/ide"
+              to={m.to}
               className="group relative rounded-xl border border-border bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_16px_40px_-20px_hsl(var(--primary)/0.6)]"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
@@ -329,9 +333,9 @@ export default function Home() {
             <a href="#modules" className="text-muted-foreground hover:text-foreground">
               All Modules
             </a>
-            <a href="#modules" className="text-muted-foreground hover:text-foreground">
+            <Link to="/practicals" className="text-muted-foreground hover:text-foreground">
               Practical Files
-            </a>
+            </Link>
             <Link to="/ide" className="text-muted-foreground hover:text-foreground">
               Report a Bug
             </Link>
