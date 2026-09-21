@@ -333,9 +333,9 @@ export default function Home() {
             <a href="#modules" className="text-muted-foreground hover:text-foreground">
               All Modules
             </a>
-            <a href="#modules" className="text-muted-foreground hover:text-foreground">
+            <Link to="/practicals" className="text-muted-foreground hover:text-foreground">
               Practical Files
-            </a>
+            </Link>
             <Link to="/ide" className="text-muted-foreground hover:text-foreground">
               Report a Bug
             </Link>
