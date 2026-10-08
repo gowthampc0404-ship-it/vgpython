@@ -329,21 +329,21 @@ serve(async (req) => {
     // Try a sequence of models so transient 503/overload on one model
     // automatically falls back to the next.
     const MODEL_CHAIN = [
-      "gemini-2.5-flash-lite",
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
+      "google/gemini-3.8-flash",
+      "google/gemini-3.1-flash-lite",
     ];
-    const GEMINI_KEY = "AIzaSyAtD8JUyU9fAuBFUZbBl6xWhkHhfnclVII";
     let response: Response | null = null;
     let lastStatus = 0;
     let lastBody = "";
     for (const model of MODEL_CHAIN) {
       const r = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/openai/v1/chat/completions",
+        "https://ai.gateway.lovable.dev/v1/chat/completions",
         {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${GEMINI_KEY}`,
+            "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+            "Lovable-API-Key": LOVABLE_API_KEY,
+            "X-Lovable-AIG-SDK": "fetch",
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
