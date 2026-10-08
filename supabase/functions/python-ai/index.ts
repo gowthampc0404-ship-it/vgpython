@@ -329,7 +329,7 @@ serve(async (req) => {
     // Try a sequence of models so transient 503/overload on one model
     // automatically falls back to the next.
     const MODEL_CHAIN = [
-      "google/gemini-3.5-flash",
+      "google/gemini-3.8-flash",
       "google/gemini-3.1-flash-lite",
     ];
     let response: Response | null = null;
