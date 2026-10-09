@@ -188,7 +188,9 @@ export function useAIExplain() {
       setIsChatLoading(true);
 
       let assistantContent = "";
-      const allMessages = [...chatMessages, userMsg];
+      const allMessages = [...chatMessages, userMsg]
+        .filter((m) => !(m.role === "assistant" && m.content.startsWith("Error:")))
+        .slice(-20);
 
       try {
         await streamFromEdge(
