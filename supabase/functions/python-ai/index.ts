@@ -267,12 +267,15 @@ serve(async (req) => {
       for (const m of messages) {
         if (
           !m || typeof m !== "object" ||
-          (m.role !== "user" && m.role !== "assistant" && m.role !== "system") ||
-          typeof m.content !== "string" || m.content.length > MAX_MSG_LEN
+          (m.role !== "user" && m.role !== "assistant") ||
+          typeof m.content !== "string" || !m.content.trim()
         ) {
-          return jsonResp(400, { error: "Invalid message" });
+          continue; // skip malformed entries instead of failing the whole chat
         }
-        safeMessages.push({ role: m.role, content: m.content });
+        safeMessages.push({ role: m.role, content: m.content.slice(0, MAX_MSG_LEN) });
+      }
+      if (type === "chat" && safeMessages.length === 0) {
+        return jsonResp(400, { error: "Invalid message" });
       }
     }
 
