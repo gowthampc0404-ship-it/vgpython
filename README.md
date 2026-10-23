@@ -1,8 +1,8 @@
-# Welcome to your Lovable project
+# Welcome You all This project is for programmers.
 
 ## Project info
-
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+You can access this using this
+**URL**: https://vgpython.lovable.app
 
 ## How can I edit this code?
 
