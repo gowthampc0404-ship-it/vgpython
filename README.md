@@ -24,7 +24,7 @@ Follow these steps:
 
 ```sh
 # Step 1: Clone the repository using the project's Git URL.
-git clone https://github.com/gowthampc0404-ship-it/vgpython/blob/main/README.md
+git clone https://github.com/gowthampc0404-ship-it/vgpython
 
 # Step 2: Navigate to the project directory.
 cd vgpython
